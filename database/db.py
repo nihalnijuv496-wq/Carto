@@ -7,8 +7,7 @@ DB_PATH = os.path.join("data", "world.db")
 def getConnection():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    # sqlite3.Row makes results be accessed like dicts
+    conn.row_factory = sqlite3.Row  # sqlite3.Row makes results be accessed like dicts
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 

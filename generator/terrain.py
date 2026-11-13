@@ -22,6 +22,7 @@ mountainMin = 0.75
 snowPeakMin = 0.90
 coldMax = 0.05
 hotMin = 0.70
+
 desertMoistureMax = 0.35
 swampMoistureMin = 0.60
 swampMaxElevation = 0.50
