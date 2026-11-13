@@ -59,7 +59,7 @@ def pngPathFor(mapId, world=None):
     return os.path.join(pngDir, f"{mapId}.png")
 
 
-def ensurePng(mapId):
+def ensurePng(mapId, world=None):
     """Render once, then serve the file from disk on every later request."""
     path = pngPathFor(mapId)
     if os.path.isfile(path):
