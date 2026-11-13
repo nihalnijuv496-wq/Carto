@@ -22,8 +22,8 @@ def generateNewMap():
 
     name = input("Map name (blank for 'Untitled'): ").strip() or "Untitled"
 
-    width = askInt("Width (default 1000): ", default=1000)
-    height = askInt("Height (default 1000): ", default=1000)
+    width = askInt("Width (default 600): ", default=600)
+    height = askInt("Height (default 600): ", default=600)
     settlementCount = askInt("Number of settlements (default 6): ", default=6)
 
     seed = random.randint(0, 999_999)
