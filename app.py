@@ -1,4 +1,5 @@
 import io
+import os
 import random
 import threading
 from datetime import datetime
@@ -17,11 +18,15 @@ from flask import (
     send_file,
     Response,
 )
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 
-from database.db import initDb
+from database.db import initDb, DATA_DIR
 from database.queries import (
     saveWorld,
+    deleteMap,
     getAllMaps,
     getMapById,
     getSettlementsForMap,
@@ -33,26 +38,43 @@ from models.world_map import WorldMap
 from render.draw_map import buildFigure
 from utils.clihelpers import loadWorldFromDb
 
+maxSavedMaps = 200
+pngDir = os.path.join(DATA_DIR, "png")
+
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["300 per hour"],
+    storage_uri="memory://",
+)
 initDb()
+os.makedirs(pngDir, exist_ok=True)
 
 renderLock = threading.Lock()
-pngCache = {}
 
 
-def renderPng(mapId):
-    if mapId in pngCache:
-        return pngCache[mapId]
+def pngPathFor(mapId):
+    return os.path.join(pngDir, f"{mapId}.png")
 
-    world = loadWorldFromDb(mapId)
+
+def ensurePng(mapId):
+    """Render once, then serve the file from disk on every later request."""
+    path = pngPathFor(mapId)
+    if os.path.isfile(path):
+        return path
+
     with renderLock:
+        if os.path.isfile(path):  # another request finished while waited
+            return path
+        world = loadWorldFromDb(mapId)
         fig = buildFigure(world)
-        buffer = io.BytesIO()
-        fig.savefig(buffer, format="png", dpi=130, bbox_inches="tight")
+        tempPath = path + ".tmp"
+        fig.savefig(tempPath, format="png", dpi=130, bbox_inches="tight")
         plt.close(fig)
-
-    pngCache[mapId] = buffer.getvalue()
-    return pngCache[mapId]
+        os.replace(tempPath, path)  # atomic
+    return path
 
 
 def getMapDetails(mapId):
@@ -116,19 +138,41 @@ def baseFileName(mapRow):
     )
 
 
+def readInt(fieldName, default, low, high):
+    try:
+        value = int(request.form.get(fieldName, default))
+    except (TypeError, ValueError):
+        abort(400)
+    return min(max(value, low), high)
+
+
+def pruneOldMaps():
+    maps = getAllMaps()
+    while len(maps) >= maxSavedMaps:
+        oldestId = min(row["id"] for row in maps)
+        deleteMap(oldestId)
+        try:
+            os.remove(pngPathFor(oldestId))
+        except FileNotFoundError:
+            pass
+        maps = [row for row in maps if row["id"] != oldestId]
+
+
 @app.route("/")
 def index():
     return render_template("index.html", maps=getAllMaps())
 
 
 @app.route("/generate", methods=["POST"])
+@limiter.limit("4 per minute;30 per hour")
 def generate():
-    name = request.form.get("name", "").strip() or "Untitled"
-    width = min(max(int(request.form.get("width", 1000)), 200), 1000)
-    height = min(max(int(request.form.get("height", 1000)), 200), 1000)
-    count = min(max(int(request.form.get("count", 6)), 1), 30)
+    name = request.form.get("name", "").strip()[:40] or "Untitled"
+    width = readInt("width", 1000, 200, 1000)
+    height = readInt("height", 1000, 200, 1000)
+    count = readInt("count", 6, 1, 30)
     seed = random.randint(0, 999_999)
 
+    pruneOldMaps()
     world = WorldMap(name, width, height, seed)
     world.generate()
     world.placeSettlements(count=count)
@@ -150,10 +194,11 @@ def mapImage(mapId):
     if mapRow is None:
         abort(404)
     return send_file(
-        io.BytesIO(renderPng(mapId)),
+        ensurePng(mapId),
         mimetype="image/png",
         as_attachment=bool(request.args.get("download")),
         download_name=f"{baseFileName(mapRow)}.png",
+        max_age=3600,
     )
 
 
@@ -172,5 +217,29 @@ def mapDetailsText(mapId):
     )
 
 
+@app.route("/healthz")
+@limiter.exempt
+def healthCheck():
+    return "ok"
+
+
+@app.errorhandler(400)
+@app.errorhandler(404)
+@app.errorhandler(429)
+@app.errorhandler(500)
+def showError(error):
+    messages = {
+        400: "That request wasn’t valid. Check the form values and try again.",
+        404: "That map doesn’t exist. It may have been removed to make room for newer ones.",
+        429: "Too many maps drawn in a short time. Wait a minute and try again.",
+        500: "Something went wrong while drawing. Try again in a moment.",
+    }
+    code = getattr(error, "code", 500)
+    return (
+        render_template("error.html", code=code, message=messages.get(code, "")),
+        code,
+    )
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

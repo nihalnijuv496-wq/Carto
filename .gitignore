@@ -19,6 +19,7 @@ dist/
 .env
 
 # Carto runtime files
+data/
 data/*.db
 output/
 

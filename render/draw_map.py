@@ -115,12 +115,9 @@ class HandlerLegendIcon(HandlerBase):
 
 
 def biomesToIndexGrid(biomes):
-    height, width = biomes.shape
-    indexGrid = np.zeros((height, width), dtype=int)
-    for y in range(height):
-        for x in range(width):
-            indexGrid[y, x] = biomeToIndex[biomes[y, x]]
-    return indexGrid
+    names, inverse = np.unique(biomes, return_inverse=True)
+    mapping = np.array([biomeToIndex[name] for name in names])
+    return mapping[inverse].reshape(biomes.shape)
 
 
 def buildFigure(world):
