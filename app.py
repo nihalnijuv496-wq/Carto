@@ -55,7 +55,7 @@ os.makedirs(pngDir, exist_ok=True)
 renderLock = threading.Lock()
 
 
-def pngPathFor(mapId):
+def pngPathFor(mapId, world=None):
     return os.path.join(pngDir, f"{mapId}.png")
 
 
@@ -68,7 +68,8 @@ def ensurePng(mapId):
     with renderLock:
         if os.path.isfile(path):  # another request finished while waited
             return path
-        world = loadWorldFromDb(mapId)
+        if world is None:
+            world = loadWorldFromDb(mapId)
         fig = buildFigure(world)
         tempPath = path + ".tmp"
         fig.savefig(tempPath, format="png", dpi=130, bbox_inches="tight")
@@ -167,8 +168,8 @@ def index():
 @limiter.limit("4 per minute;30 per hour")
 def generate():
     name = request.form.get("name", "").strip()[:40] or "Untitled"
-    width = readInt("width", 600, 200, 1000)
-    height = readInt("height", 600, 200, 1000)
+    width = readInt("width", 600, 200, 600)
+    height = readInt("height", 600, 200, 600)
     count = readInt("count", 6, 1, 30)
     seed = random.randint(0, 999_999)
 
@@ -177,6 +178,7 @@ def generate():
     world.generate()
     world.placeSettlements(count=count)
     mapId = saveWorld(world)
+    ensurePng(mapId, world)
     return redirect(url_for("viewMap", mapId=mapId))
 
 
