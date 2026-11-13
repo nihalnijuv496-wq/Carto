@@ -1,0 +1,13 @@
+<h1>{{ mapRow['name'] }}</h1>
+<p>Seed: <code>{{ mapRow['seed'] }}</code> · {{ mapRow['width'] }}×{{ mapRow['height'] }}</p>
+<img src="data:image/png;base64,{{ image }}" alt="Map" style="max-width:100%">
+<p>Total population: {{ details.totalPop }}</p>
+{% if details.largest %}
+<p>Largest: {{ details.largest['name'] }} ({{ details.largest['type'] }}, pop {{ details.largest['population'] }})</p>
+{% endif %}
+<ul>
+{% for s in details.settlements %}
+  <li>{{ s['name'] }}, {{ s['type'] }}, pop {{ s['population'] }}</li>
+{% endfor %}
+</ul>
+<a href="/">Back</a>
