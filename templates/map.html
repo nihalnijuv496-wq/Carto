@@ -1,13 +1,83 @@
-<h1>{{ mapRow['name'] }}</h1>
-<p>Seed: <code>{{ mapRow['seed'] }}</code> · {{ mapRow['width'] }}×{{ mapRow['height'] }}</p>
-<img src="data:image/png;base64,{{ image }}" alt="Map" style="max-width:100%">
-<p>Total population: {{ details.totalPop }}</p>
-{% if details.largest %}
-<p>Largest: {{ details.largest['name'] }} ({{ details.largest['type'] }}, pop {{ details.largest['population'] }})</p>
-{% endif %}
-<ul>
-{% for s in details.settlements %}
-  <li>{{ s['name'] }}, {{ s['type'] }}, pop {{ s['population'] }}</li>
-{% endfor %}
-</ul>
-<a href="/">Back</a>
+{% extends "base.html" %}
+{% block title %}{{ mapRow['name'] }} | Carto{% endblock %}
+{% block content %}
+{% set settlements = details.settlements %}
+{% set maxPop = (settlements[0]['population'] if settlements else 1) or 1 %}
+
+<section class="titleRow">
+  <div>
+    <h1>{{ mapRow['name'] }}</h1>
+    <p class="sub">{{ mapRow['width'] }} by {{ mapRow['height'] }}, charted {{ mapRow['created_at'][:10] }}</p>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('mapImage', mapId=mapRow['id'], download=1) }}">Download map (PNG)</a>
+      <a class="btn" href="{{ url_for('mapDetailsText', mapId=mapRow['id']) }}">Download details (TXT)</a>
+    </div>
+  </div>
+  <div class="seal" title="Use this seed to identify the map">
+    <span class="sealWord">seed</span>
+    <span class="sealNumber">{{ mapRow['seed'] }}</span>
+  </div>
+</section>
+
+<figure class="plate">
+  <img src="{{ url_for('mapImage', mapId=mapRow['id']) }}" alt="Map of {{ mapRow['name'] }}">
+</figure>
+
+<section class="survey">
+  <div>
+    <h2>Survey</h2>
+    <dl class="facts">
+      <div><dt>Settlements</dt><dd>{{ settlements|length }}</dd></div>
+      <div><dt>Population</dt><dd>{{ "{:,}".format(details.totalPop or 0) }}</dd></div>
+      {% if details.largest %}
+      <div><dt>Largest</dt>
+        <dd>{{ details.largest['name'] }}
+          <span class="note">{{ details.largest['type']|replace('_',' ') }}, {{ "{:,}".format(details.largest['population']) }}</span></dd></div>
+      {% endif %}
+    </dl>
+  </div>
+  <div>
+    <h2>Settlement types</h2>
+    <ul class="tally">
+      {% for typeName, count in details.typeCounts.items() %}
+      <li>
+        <span>{{ typeName|replace('_',' ')|title }}</span>
+        <span class="tallyBar"><i style="width: {{ (count / (settlements|length) * 100)|round(1) }}%"></i></span>
+        <span class="tallyCount">{{ count }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+
+<section class="gazetteer">
+  <h2>Gazetteer</h2>
+  <div class="tableWrap">
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Type</th><th class="num">Position</th><th>Population</th><th>Founded for</th></tr>
+      </thead>
+      <tbody>
+        {% for s in settlements %}
+        <tr>
+          <td class="placeName">{{ s['name'] }}</td>
+          <td>{{ s['type']|replace('_',' ')|title }}</td>
+          <td class="num">{{ s['x'] }}, {{ s['y'] }}</td>
+          <td class="popCell">
+            {% if s['population'] %}
+            <span class="popBar"><i style="width: {{ (s['population'] / maxPop * 100)|round(1) }}%"></i></span>
+            <span class="popValue">{{ "{:,}".format(s['population']) }}</span>
+            {% else %}
+            <span class="note">uninhabited</span>
+            {% endif %}
+          </td>
+          <td>{{ s['notes'] or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<p class="back"><a href="{{ url_for('index') }}">Back to all maps</a></p>
+{% endblock %}

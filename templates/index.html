@@ -1,13 +1,41 @@
-<h1>Carto</h1>
-<form method="post" action="/generate">
-  <input name="name" placeholder="Map name">
-  <input name="width" type="number" value="1000" min="200" max="1000">
-  <input name="height" type="number" value="1000" min="200" max="1000">
-  <input name="count" type="number" value="6" min="1" max="30">
-  <button>Generate</button>
-</form>
-<ul>
-{% for m in maps %}
-  <li><a href="/map/{{ m['id'] }}">{{ m['name'] }}</a> (seed {{ m['seed'] }})</li>
-{% endfor %}
-</ul>
+{% extends "base.html" %}
+{% block content %}
+<section class="commission">
+  <h2>Draw a new map</h2>
+  <form id="drawForm" method="post" action="{{ url_for('generate') }}">
+    <label>Name <input name="name" placeholder="Untitled"></label>
+    <label>Width <input name="width" type="number" value="1000" min="200" max="1000"></label>
+    <label>Height <input name="height" type="number" value="1000" min="200" max="1000"></label>
+    <label>Settlements <input name="count" type="number" value="6" min="1" max="30"></label>
+    <button class="btn btn-solid" id="drawButton">Draw map</button>
+  </form>
+</section>
+
+<section class="saved">
+  <h2>Saved maps</h2>
+  {% if maps %}
+  <ul class="index">
+    {% for m in maps %}
+    <li>
+      <a href="{{ url_for('viewMap', mapId=m['id']) }}">
+        <span class="entryName">{{ m['name'] }}</span>
+        <span class="leader"></span>
+        <span class="entryMeta">seed {{ m['seed'] }}, {{ m['width'] }} by {{ m['height'] }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">No maps yet. Draw one above.</p>
+  {% endif %}
+</section>
+
+<script>
+  var drawForm = document.getElementById("drawForm");
+  var drawButton = document.getElementById("drawButton");
+  drawForm.addEventListener("submit", function () {
+    drawButton.disabled = true;
+    drawButton.textContent = "Drawing…";
+  });
+</script>
+{% endblock %}
