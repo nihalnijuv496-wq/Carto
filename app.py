@@ -167,8 +167,8 @@ def index():
 @limiter.limit("4 per minute;30 per hour")
 def generate():
     name = request.form.get("name", "").strip()[:40] or "Untitled"
-    width = readInt("width", 1000, 200, 1000)
-    height = readInt("height", 1000, 200, 1000)
+    width = readInt("width", 600, 200, 1000)
+    height = readInt("height", 600, 200, 1000)
     count = readInt("count", 6, 1, 30)
     seed = random.randint(0, 999_999)
 
