@@ -4,8 +4,8 @@
   <h2>Draw a new map</h2>
   <form id="drawForm" method="post" action="{{ url_for('generate') }}">
     <label>Name <input name="name" placeholder="Untitled"></label>
-    <label>Width <input name="width" type="number" value="600" min="200" max="600"></label>
-    <label>Height <input name="height" type="number" value="600" min="200" max="600"></label>
+    <label>Width <input name="width" type="number" value="500" min="200" max="500"></label>
+    <label>Height <input name="height" type="number" value="500" min="200" max="500"></label>
     <label>Settlements <input name="count" type="number" value="6" min="1" max="30"></label>
     <button class="btn btn-solid" id="drawButton">Draw map</button>
   </form>

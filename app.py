@@ -1,4 +1,5 @@
 import io
+import gc
 import os
 import random
 import threading
@@ -72,7 +73,7 @@ def ensurePng(mapId, world=None):
             world = loadWorldFromDb(mapId)
         fig = buildFigure(world)
         tempPath = path + ".tmp"
-        fig.savefig(tempPath, format="png", dpi=130, bbox_inches="tight")
+        fig.savefig(tempPath, format="png", dpi=100, bbox_inches="tight")
         plt.close(fig)
         os.replace(tempPath, path)  # atomic
     return path
@@ -168,8 +169,8 @@ def index():
 @limiter.limit("4 per minute;30 per hour")
 def generate():
     name = request.form.get("name", "").strip()[:40] or "Untitled"
-    width = readInt("width", 600, 200, 600)
-    height = readInt("height", 600, 200, 600)
+    width = readInt("width", 500, 200, 500)
+    height = readInt("height", 500, 200, 500)
     count = readInt("count", 6, 1, 30)
     seed = random.randint(0, 999_999)
 
@@ -179,6 +180,8 @@ def generate():
     world.placeSettlements(count=count)
     mapId = saveWorld(world)
     ensurePng(mapId, world)
+    del world
+    gc.collect()
     return redirect(url_for("viewMap", mapId=mapId))
 
 
