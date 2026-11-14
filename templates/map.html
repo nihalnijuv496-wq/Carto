@@ -9,7 +9,7 @@
     <h1>{{ mapRow['name'] }}</h1>
     <p class="sub">{{ mapRow['width'] }} by {{ mapRow['height'] }}, charted {{ mapRow['created_at'][:10] }}</p>
     <div class="actions">
-      <a class="btn" href="{{ url_for('mapImage', mapId=mapRow['id'], download=1) }}">Download map (PNG)</a>
+      <a class="btn" href="{{ url_for('mapImage', mapId=mapRow['id'], download=1, v=mapRow['created_at']) }}">Download map (PNG)</a>
       <a class="btn" href="{{ url_for('mapDetailsText', mapId=mapRow['id']) }}">Download details (TXT)</a>
     </div>
   </div>
@@ -20,7 +20,7 @@
 </section>
 
 <figure class="plate">
-  <img src="{{ url_for('mapImage', mapId=mapRow['id']) }}" alt="Map of {{ mapRow['name'] }}">
+  <img src="{{ url_for('mapImage', mapId=mapRow['id'], v=mapRow['created_at']) }}" alt="Map of {{ mapRow['name'] }}">
 </figure>
 
 <section class="survey">
