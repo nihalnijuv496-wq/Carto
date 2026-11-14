@@ -53,7 +53,7 @@ limiter = Limiter(
 initDb()
 os.makedirs(pngDir, exist_ok=True)
 
-renderLock = threading.Lock()
+renderLock = threading.RLock()
 
 
 def pngPathFor(mapId, world=None):
@@ -174,14 +174,16 @@ def generate():
     count = readInt("count", 6, 1, 10)
     seed = random.randint(0, 999_999)
 
-    pruneOldMaps()
-    world = WorldMap(name, width, height, seed)
-    world.generate()
-    world.placeSettlements(count=count)
-    mapId = saveWorld(world)
-    ensurePng(mapId, world)
-    del world
-    gc.collect()
+    with renderLock:
+        pruneOldMaps()
+        world = WorldMap(name, width, height, seed)
+        world.generate()
+        world.placeSettlements(count=count)
+        mapId = saveWorld(world)
+        ensurePng(mapId, world)
+        del world
+        gc.collect()
+
     return redirect(url_for("viewMap", mapId=mapId))
 
 
