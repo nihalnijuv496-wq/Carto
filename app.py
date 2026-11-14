@@ -172,7 +172,16 @@ def generate():
     width = readInt("width", 500, 200, 500)
     height = readInt("height", 500, 200, 500)
     count = readInt("count", 6, 1, 10)
-    seed = random.randint(0, 999_999)
+    seedText = request.form.get("seed", "").strip()
+    if seedText:
+        try:
+            seed = int(seedText)
+        except ValueError:
+            abort(400)
+        if not 0 <= seed <= 999_999:
+            abort(400)
+    else:
+        seed = random.randint(0, 999_999)
 
     with renderLock:
         pruneOldMaps()
