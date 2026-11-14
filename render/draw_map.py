@@ -17,8 +17,8 @@ iconDir = os.path.join(os.path.dirname(__file__), "..", "assets", "icons")
 settlementIconDir = os.path.join(iconDir, "settlements")
 reasonIconDir = os.path.join(iconDir, "reasons")
 
-settlementIconZoom = 0.02
-reasonIconZoom = 0.02
+settlementIconZoom = 0.3125
+reasonIconZoom = 0.3125
 
 biomeOrder = [
     "deep_ocean",
