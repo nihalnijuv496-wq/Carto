@@ -3,6 +3,7 @@ import gc
 import os
 import random
 import threading
+import hashlib
 from datetime import datetime
 
 import matplotlib
@@ -56,18 +57,24 @@ os.makedirs(pngDir, exist_ok=True)
 renderLock = threading.RLock()
 
 
-def pngPathFor(mapId, world=None):
-    return os.path.join(pngDir, f"{mapId}.png")
+def pngPathFor(mapRow):
+    key = "|".join(
+        str(mapRow[field])
+        for field in ("id", "name", "seed", "width", "height", "created_at")
+    )
+    digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:20]
+    return os.path.join(pngDir, f"{digest}.png")
 
 
 def ensurePng(mapId, world=None):
     """Render once, then serve the file from disk on every later request."""
-    path = pngPathFor(mapId)
+    mapRow = getMapById(mapId)
+    path = pngPathFor(mapRow)
     if os.path.isfile(path):
         return path
 
     with renderLock:
-        if os.path.isfile(path):  # another request finished while waited
+        if os.path.isfile(path):
             return path
         if world is None:
             world = loadWorldFromDb(mapId)
@@ -75,7 +82,7 @@ def ensurePng(mapId, world=None):
         tempPath = path + ".tmp"
         fig.savefig(tempPath, format="png", dpi=100, bbox_inches="tight")
         plt.close(fig)
-        os.replace(tempPath, path)  # atomic
+        os.replace(tempPath, path)
     return path
 
 
@@ -149,15 +156,15 @@ def readInt(fieldName, default, low, high):
 
 
 def pruneOldMaps():
-    maps = getAllMaps()
+    maps = list(getAllMaps())
     while len(maps) >= maxSavedMaps:
-        oldestId = min(row["id"] for row in maps)
-        deleteMap(oldestId)
+        oldestRow = min(maps, key=lambda row: row["id"])
+        deleteMap(oldestRow["id"])
         try:
-            os.remove(pngPathFor(oldestId))
+            os.remove(pngPathFor(oldestRow))
         except FileNotFoundError:
             pass
-        maps = [row for row in maps if row["id"] != oldestId]
+        maps = [row for row in maps if row["id"] != oldestRow["id"]]
 
 
 @app.route("/")
