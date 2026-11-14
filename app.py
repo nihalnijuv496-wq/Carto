@@ -180,7 +180,11 @@ def generate():
         world.generate()
         world.placeSettlements(count=count)
         mapId = saveWorld(world)
-        ensurePng(mapId, world)
+        try:
+            ensurePng(mapId, world)
+        except Exception:
+            deleteMap(mapId)
+            raise
         del world
         gc.collect()
 
@@ -232,12 +236,14 @@ def healthCheck():
 
 @app.errorhandler(400)
 @app.errorhandler(404)
+@app.errorhandler(405)
 @app.errorhandler(429)
 @app.errorhandler(500)
 def showError(error):
     messages = {
         400: "That request wasn’t valid. Check the form values and try again.",
         404: "That map doesn’t exist. It may have been removed to make room for newer ones.",
+        405: "That page only works from the “Draw map” form on the home page.",
         429: "Too many maps drawn in a short time. Wait a minute and try again.",
         500: "Something went wrong while drawing. Try again in a moment.",
     }
